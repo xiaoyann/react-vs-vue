@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>countdown</title>
+  <style>
+    body {
+      background-color: #f5f5f5;
+    }
+    .wrapper h3 {
+      text-align: center;
+    }
+    .countdown {
+      width: 320px;
+      padding: 0 15px;
+      margin: 0 auto;
+      background-color: #fff;
+    }
+    .cell {
+      display: flex;
+      padding: 10px 0;
+      border-top: 1px solid #e5e5e5;
+    }
+    .cell:first-child {
+      border-top: none;
+    }
+    .cell--hd {
+      width: 80px;
+      height: 30px;
+      font-size: 14px;
+      line-height: 30px;
+    }
+    .cell--bd {
+      flex: 1;
+      height: 30px;
+    }
+    input {
+      outline: none;
+      height: 30px;
+      padding: 0;
+      border: none;
+    }
+    .button {
+      display: block;
+      width: 80px;
+      height: 30px;
+      border-radius: 3px;
+      font-size: 12px;
+      line-height: 30px;
+      text-align: center;
+      color: #fff;
+      text-decoration: none;
+      background: #38f;
+    }
+    .disable {
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h3>Countdown By Vue.js</h3>
+    <div id="VueApp">
+      <div class="countdown">
+        <div class="cell">
+          <div class="cell--hd">手机号：</div>
+          <div class="cell--bd">
+            <input type="text" placeholder="输入手机号" v-model="telNumber">
+          </div>
+        </div>
+        <div class="cell">
+          <div class="cell--hd">验证码：</div>
+          <div class="cell--bd">
+            <input type="text" placeholder="输入验证码">
+          </div>
+          <div class="cell--ft">
+            <Countdown v-bind:valid="!!telNumber" v-on:start="handleStart" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>  
+  
+  <div class="wrapper" style="padding-top: 20px">
+    <h3>Countdown By React.js</h3>
+    <div id="ReactApp"></div>
+  </div>  
+<script src="../lib/vue.js"></script>
+<script src="../lib/react.js"></script>
+<script src="../lib/react-dom.js"></script>
+<script src="../lib/babel.min.js"></script>
+<script>
+  (function() {
+    /**
+     * 发送验证码倒计时控件
+     */
+    const Countdown = {
+      template: `
+        <a @click="handleClick" class="button" :class="{'disable': started}" href="javascript:;">{{desc}}</a>
+      `,
+      props: [ 
+        // 
+        'valid' 
+      ],
+      data() {
+        return {
+          // 标记是否已经开始倒计时，避免重复点击时重复触发计时
+          started: false,
+          // 按钮描述文本，通过该字段更新按钮倒计时文本
+          desc: '发送验证码'
+        };
+      },
+      methods: {
+        handleClick() {
+          if (this.valid && !this.started) {
+            this.timeStart();
+            this.started = true;
+          }
+          this.$emit('start');
+        },
+        timeStart() {
+          let time = 5, timer;
+          const originDesc = this.desc;
+          
+          const rewriteDesc = () => {
+            this.desc = time + '秒';
+            time -= 1; 
+            if (time < 0) {
+              clearInterval(timer);
+              this.started = false;
+              this.desc = originDesc;
+            }
+          };
+
+          rewriteDesc();
+          timer = setInterval(rewriteDesc, 1000);
+        },
+      }
+    };
+
+    const VueApp = new Vue({
+      data: {
+        // 手机号字段，如果该字段的值为空，不能开始倒计时
+        telNumber: '',
+      },
+      components: { 
+        Countdown 
+      },
+      methods: {
+        /**
+         * 请求服务器发送验证码
+         */
+        sendVerifyCode() {
+          // ...
+        },
+        handleStart() {
+          if (!this.telNumber) {
+            alert('请先输入手机号');
+          } else {
+            this.sendVerifyCode();
+          }
+        }
+      }
+    });
+    VueApp.$mount('#VueApp');
+  })();
+</script>
+
+<script type="text/babel">
+  /**
+   * 发送验证码倒计时控件
+   */
+  class Countdown extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = {};
+      // 标记是否已经开始倒计时，避免重复点击时重复触发计时
+      this.state.started = false;
+      // 按钮描述文本，通过该字段更新按钮倒计时文本
+      this.state.desc = '发送验证码';
+      this.handleClick = this.handleClick.bind(this);
+    }
+    handleClick() {
+      const { started } = this.state;
+      if (!started && this.props.onStart()) {
+        this.timeStart();
+        this.setState({started: true});
+      }
+    }
+    timeStart() {
+      let time = 5, timer;
+      const originDesc = this.state.desc;
+      
+      const rewriteDesc = () => {
+        this.setState({desc: time + '秒'});
+        time -= 1; 
+        if (time < 0) {
+          clearInterval(timer);
+          this.started = false;
+          this.desc = originDesc;
+          this.setState({started: false, desc: originDesc});
+        }
+      };
+
+      rewriteDesc();
+      timer = setInterval(rewriteDesc, 1000);
+    }
+    render() {
+      const { started, desc } = this.state;
+      const classNames = 'button ' + (started ? 'disable' : '');
+      return (
+        <a onClick={this.handleClick} className={classNames} href="javascript:;">{desc}</a>
+      );
+    }
+  }
+
+  class ReactApp extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = {};
+      // 手机号字段，如果该字段的值为空，不能开始倒计时
+      this.state.telNumber = '';
+      this.handleStart = this.handleStart.bind(this);
+      this.setTelNumber = this.setTelNumber.bind(this);
+    }
+    setTelNumber(e) {
+      this.setState({telNumber: e.target.value});
+    }
+    handleStart() {
+      if (!this.state.telNumber) {
+        alert('请先输入手机号');
+      } else {
+        this.sendVerifyCode();
+      }
+      return !!this.state.telNumber;
+    }
+    /**
+     * 请求服务器发送验证码
+     */
+    sendVerifyCode() {
+      // ...
+    }
+    render() {
+      return (
+        <div className="countdown">
+          <div className="cell">
+            <div className="cell--hd">手机号：</div>
+            <div className="cell--bd">
+              <input type="text" placeholder="输入手机号" onChange={this.setTelNumber}/>
+            </div>
+          </div>
+          <div className="cell">
+            <div className="cell--hd">验证码：</div>
+            <div className="cell--bd">
+              <input type="text" placeholder="输入验证码"/>
+            </div>
+            <div className="cell--ft">
+              <Countdown onStart={this.handleStart} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  ReactDOM.render(
+    <ReactApp />, 
+  document.querySelector('#ReactApp'));
+</script>
+</body>
+</html>
+
+
+
+
+
+
